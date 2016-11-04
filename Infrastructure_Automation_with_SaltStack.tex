@@ -1,0 +1,474 @@
+
+\documentclass{beamer}
+\mode<presentation> {
+\usetheme{tcd}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{verbatim}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+%\lstset{frame=tb,
+%  language=C,
+%  aboveskip=3mm,
+%  belowskip=3mm,
+%  showstringspaces=false,
+%  columns=flexible,
+%  basicstyle={\small\ttfamily},
+%  numbers=none,
+%  numberstyle=\tiny\color{gray},
+%  keywordstyle=\color{blue},
+%  commentstyle=\color{dkgreen},
+%  stringstyle=\color{mauve},
+%  breaklines=true,
+%  breakatwhitespace=true,
+%  tabsize=3
+%}
+}
+
+\title[]{Infrastructure Automation with Salt} 
+
+\author{Sean McGrath}
+\institute[TCD]
+{
+Resarch IT \\
+Trinity College Dublin \\
+\medskip
+\textit{sean.mcgrath@tcd.ie} 
+}
+\date{10th November 2016}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+%\begin{frame}
+%\frametitle{Overview}
+
+%\tableofcontents
+
+%\end{frame}
+
+
+\begin{frame}
+\frametitle{About Research IT}
+
+\begin{itemize}
+\item Where I work as a systems administrator
+\item http://www.tchpc.tcd.ie/
+\item Ireland's premier High Performance Computing Centre with large scale Supercomputing and Visualisation facilities.
+\item Assisting Researchers with computationally complex problems.
+\item Previously The Trinity Centre for High Performance Computing, TCHPC
+\item Manage in the region of 500 physical and virtual linux machines
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{About Configuration management}
+\begin{quote}
+Configuration management (CM) is a systems engineering process for establishing and maintaining consistency of a product's performance, functional, and physical attributes with its requirements, design, and operational information throughout its life.
+\footnote{\url{https://en.wikipedia.org/wiki/Configuration_management}} % cite the quote as a foot note on the slide
+\end{quote}
+Dangers of Configuration Management
+\begin{itemize}
+\item Can't just do something on the fly, must be centrally managed
+\item There is a risk that local changes will get over written
+\item You have to learn another tool
+\end{itemize}
+Examples:
+\begin{itemize}
+\item Salt
+\item Puppet
+\item Ansible
+\item Lots more
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Why use a Configuration Manager?}
+
+It allows you to be:
+\begin{itemize}
+\item Scalable: \emph{~400 HPC nodes with identical configuration}
+\item Granulated: \emph{specific configurations can be applied to a specific node(s)}
+\item Automated: \emph{you write your salt statements once but call them repeatedly}
+\item Repeatable: \emph{it's the same salt statement that is applied each time}
+\item Efficient: \emph{once configured you don't have to intervene with specific machines}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{About Salt}
+Salt (also called SaltStack): https://saltstack.com/\\
+\begin{itemize}
+\item Client Server design.\\
+\item Service runs on the managed nodes (minions).\\
+\item Minions controlled by the master.\\
+\item Master can push changes or minions can pull from the master.\\
+\item Trust relationship managed via asynchronous keys\\
+\end{itemize}
+Some of what can be managed:
+\begin{itemize}
+\item package installation
+\item configuration files, sourced from master, templates, find and replace in a file...
+\item enabled and running services
+\item specific settings or facts, e.g. db password, for individual minions
+\item much more
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Why salt over ansible or puppet}
+Firstly, this is nothing against either of those, which we have both used. But from our experience Salt has advantages:\\
+\begin{itemize}
+\item Usable error messages - Ansible's error messages lack detail
+\item Granularity - Ansible is hard to do a single thing to 1 node with
+\item Scale - Ansible is slow in comparison to Salt
+\item YAML - Puppet requires some ruby skills I at least don't have
+\item Flexibility - Puppet always seemed very controlling and designed for tight control
+\end{itemize}
+
+Lets see some use case examples:\\
+\end{frame}
+
+\begin{frame}[fragile] % fragile needed when quoting code or using verbatim, etc
+\frametitle{Use Case 1 - re-install a 100 node cluster}
+
+Step 1. Re-install OS on nodes with PXE \\
+Step 2. Install and configure salt on nodes\\
+\begin{lstlisting}[basicstyle=\tiny,]
+salt-ssh --ignore-host-keys --passwd xxxxxxxx kelvin-n* state.sls installsalt
+\end{lstlisting}
+Step 3 - reboot node's\\
+\begin{lstlisting}[basicstyle=\tiny,]
+salt-ssh --ignore-host-keys --passwd xxxxxxxx kelvin-n* cmd.run 'reboot' 
+\end{lstlisting}
+Comment\\
+\begin{itemize}
+\item Salt scales very well in this instance, much better than Ansible
+\item It offers great efficiencies, once developed your salt state's automate all your work for you
+\item Can be easily repeated in future\\~\\
+\end{itemize}
+Lets look at what exactly the $installsalt$ state does.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Use Case 1 - $installsalt$ state}
+\begin{lstlisting}[basicstyle=\tiny,]
+install epel:
+  pkg:
+    - installed
+    - pkgs:
+      - epel-release
+      - yum-conf-epel
+salt-minion:
+  pkg:
+    - installed
+create folders for keys:
+  file:
+    - name: /etc/salt/pki/minion/minion_master.pub
+    - managed
+    - makedirs: True
+{% for file in ['minion_master.pub','minion.pem','minion.pub'] %}
+/etc/salt/pki/minion/{{ file }}:
+  file:
+    - managed
+    - source: salt://installsalt/{{ file }}.{{ cluster_name }}
+    - watch_in:
+      - service: restart salt minion
+{% endfor %}
+restart salt minion:
+  service:
+    - name: salt-minion
+    - running
+/etc/rc.local:
+  file:
+    - append
+    - text: "sleep 10; salt-call state.highstate pillar='{\"reboot\": \"yes\"}' #wait 10 secs for GPFS"
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Use Case 2 - Bootstrap installation}
+Scenario: new VM and want to put your common config on it.\\
+Assumptions:\\
+\begin{itemize}
+\item OS and salt installed on VM
+\item minions key signed by master
+\end{itemize}
+From the salt master:\\
+\begin{lstlisting}[basicstyle=\tiny,]
+salt newserver.fqdn state.sls bootstrap
+\end{lstlisting}
+Which does:\\
+\begin{lstlisting}[basicstyle=\tiny,]
+include:
+  - general.init # incase a highstate isn't called ensure the states that should apply to all hosts are applied
+  - tchpc-general.epel
+  - tchpc-general.repositories.local
+  - tchpc-general.nrpe
+  - tchpc-general.shorewall
+  - tchpc-general.postfix
+  - tchpc-general.snmp
+  - tchpc-general.services
+  - tchpc-general.rsyslog
+  - tchpc-general.check_updates
+  - tchpc-general.bacula
+\end{lstlisting}
+Why: your standard setup is repeatedly and automatically applied.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Use Case 3 - Install a web server}
+Installation State:
+\begin{lstlisting}[basicstyle=\tiny,]
+install common packages:
+  pkg:
+    - installed
+    - pkgs:
+      - httpd
+      - php
+      - php-devel
+      - mysql
+      - php-ldap
+      - mod_ssl
+      - openssl
+      - php-mysql
+      - php-pear-MDB2-Driver-mysql
+      - mod_authz_ldap
+
+httpd service:
+  service:
+    - name: httpd
+    - running
+    - enable: True
+\end{lstlisting}
+From the salt master:
+\begin{lstlisting}[basicstyle=\tiny,]
+salt webserver.fqdn state.sls install-webserver
+\end{lstlisting}
+That is a very efficient way to get the usual web server settings applied to a host without having to reference standard install documentation.
+\end{frame}
+
+\begin{frame}
+\frametitle{Use Case 4 - software upgrade testing}
+Scenario:\\
+\begin{itemize}
+\item kernel needs to be updated.
+\item Software, (GPFS - parallel file system) depends on kernel version.
+\item Both need to be updated simultaneously.
+\item Want to test on a subset of nodes first.
+\end{itemize}
+Tell the minion what version to use - pillar\\
+\begin{quote}
+Pillar is an interface for Salt designed to offer global values that can be distributed to minions.
+\footnote{\url{https://docs.saltstack.com/en/carbon/topics/pillar/index.html}}
+\end{quote}
+Identify the minion to apply the pillar variable to - grains\\
+\begin{quote}
+interface to derive information about the underlying system. This is called the grains interface
+\footnote{\url{https://docs.saltstack.com/en/latest/topics/grains/}}
+\end{quote}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Use Case 4 - install specific versions on specific node}
+
+Set the pillar to the updated versions for your test node:\\
+
+\begin{lstlisting}[basicstyle=\tiny,]
+# testing upgraded versions on specific nodes:
+{% if salt['grains.get']('id')[0:11]=='kelvin-n038' %}
+gpfs_version: 3.5.0-32
+{% else %}
+gpfs_version: 3.5.0-29
+{% endif %}
+{% if salt['grains.get']('id')[0:11]=='kelvin-n038' %}
+kernel_version: 2.6.32-642.3.1.el6.x86_64
+{% else %}
+kernel_version: 2.6.32-573.12.1.el6.x86_64
+{% endif %}
+\end{lstlisting}
+
+Install the relevant kernel version, (pillar variable) for the node, (identified by grain).
+
+\begin{lstlisting}[basicstyle=\tiny,]
+{% if grains['kernelrelease'] != salt['pillar.get']('kernel_version') %}
+install kernel packages (cmd):
+  cmd:
+    - run
+    - name: yum -y install kernel-headers-{{ salt['pillar.get']('kernel_version') }} kernel-{{ salt['pillar.get']('kernel_version') }} kernel-devel-{{ salt['pillar.get']('kernel_version') }}
+\end{lstlisting}
+
+This provides excellent granularity without having to provision a test environment.
+
+\end{frame} 
+
+\begin{frame}
+\frametitle{Use Case 5 - GPU card installation}
+Process:\\
+\begin{enumerate}% itemized / ordered list
+\item Remove unsupported kernel modules and reboot to load correct kernel modules.
+\item Generate a new ramdisk without the supported kernel modules.
+\item Boot from that new ramdisk.
+\item Install the GPU drivers and reboot.\\~\\ % leave a line blank after this for prettier spacing
+\end{enumerate}
+
+Limitation: Only want to run this state on a node with GPU hardware.\\~\\
+
+Gotcha: Possible infinite loop of reboots unless the minion knows each step has completed successfully.\\~\\
+
+Solution: Set a grain after each step.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Use Case 5 - Continued}
+
+
+Ensure this state only runs on a node with the gpu installed in it:\\
+\begin{lstlisting}[basicstyle=\tiny,]
+{% if salt['grains.get']('gpus:model') == 'GK110BGL [Tesla K40m]' %}
+\end{lstlisting}
+
+Unload kernel modules 
+\begin{lstlisting}[basicstyle=\tiny,]
+# the nouveu modules need to be removed from the kernel
+/etc/modprobe.d/blacklist-nouveau.conf:
+  file.managed:
+    - source: salt://clusters/nodes/gpu-boole/blacklist-nouveau.conf
+    - mode: 644
+    - user: root
+    - group: root
+\end{lstlisting}
+Reboot, requires salt being called with a reboot pillar set
+\begin{lstlisting}[basicstyle=\tiny,]
+{% if pillar['reboot'] != 'yes' %}
+always-fails gpu:
+  test.fail_without_changes:
+    - name: MESSAGE - the minion should reboot 
+    - failhard: True
+{% endif %} # end if pillar['reboot'] != 'yes' %}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Use Case 5 - Continued}
+
+Generate the new ramdisk from those modules\\
+
+\begin{lstlisting}[basicstyle=\tiny,]
+{% if grains.get('regenerate_ramdisk') != 'regenerated' %}
+# ramdisk needs to be re-generated without the nouveu modules and node booted from it
+create ramdisk without the nouveau modules:
+  cmd.run:
+    - name: dracut --force
+\end{lstlisting}
+
+Set a grain value on the minion to say that ramdisk has been re-generated.\\
+
+\begin{lstlisting}[basicstyle=\tiny,]
+regenerate_ramdisk:
+  module.run:
+    - name: grains.setval
+    - key: regenerate_ramdisk
+    - val: 'regenerated'
+\end{lstlisting}
+
+Boot from the new ramdisk\\
+
+\begin{lstlisting}[basicstyle=\tiny,]
+system.reboot ramdisk:
+  module:
+    - name: system.reboot
+    - run
+    - require:
+      - module: regenerate_ramdisk
+stops after ramdisk reboot:
+  test.fail_without_changes:
+    - name: MESSAGE - system rebooting
+    - failhard: True
+    - require:
+      - module: system.reboot ramdisk
+{% endif %}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Use Case 5 - Continued}
+
+Install GPU drivers only if they haven't all ready been installed \\
+
+\begin{lstlisting}[basicstyle=\tiny,]
+{% if grains.get('nvidia_drivers') != 'installed' %}
+Install Nvidia drivers:
+  cmd.run:
+    - name: /home/support/root/gpu/cuda_7.5.18_linux.run --silent
+\end{lstlisting}
+
+Set the grain to say they've been installed to prevent a reboot loop and reboot:\\
+
+\begin{lstlisting}[basicstyle=\tiny,]
+nvidia_drivers:
+  module.run:
+    - name: grains.setval
+    - key: nvidia_drivers
+    - val: 'installed'
+system.reboot nvidia_drivers:
+  module:
+    - name: system.reboot
+    - run
+    - require:
+      - module: nvidia_drivers
+stops after nvidia drivers reboot:
+  test.fail_without_changes: # this is really supported only from Salt 2014.7
+    - name: MESSAGE - system rebooting
+    - failhard: True
+    - require:
+      - module: system.reboot nvidia_drivers
+{% endif %}
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}
+\frametitle{Use Case 5 - benefits}
+
+Salt provides a simple and easy way to automatically provision a complex installation.\\~\\
+
+It is easily repeated if a minion has to be re-installed or new machines added.\\~\\
+
+You have a centralise documentation store of what exactly needs to be done to set your installation up.
+
+\end{frame}
+
+%\begin{frame}[fragile]
+%\frametitle{Live Demo!}
+%
+%Hope I get lucky with this!.\\~\\
+%
+%Scenario: The HEAnet 2016 website is down!\\~\\
+%
+%Can Salt save the day?
+%
+%\end{frame}
+
+\begin{frame}
+\frametitle{Salt take aways}
+\begin{itemize}
+\item Salt does the work of configuring your machines for you
+\item Salt provides system documentation
+\item Salt provides a knowledge base of "How to do X"
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Thank You!}
+Questions?
+\end{frame}
+\end{document}
