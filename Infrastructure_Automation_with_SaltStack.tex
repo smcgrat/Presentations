@@ -6,6 +6,7 @@
 \usepackage{listings}
 \usepackage{color}
 \usepackage{verbatim}
+\usepackage{graphicx}
 
 \definecolor{dkgreen}{rgb}{0,0.6,0}
 \definecolor{gray}{rgb}{0.5,0.5,0.5}
@@ -447,16 +448,34 @@ You have a centralise documentation store of what exactly needs to be done to se
 
 \end{frame}
 
-%\begin{frame}[fragile]
-%\frametitle{Live Demo!}
-%
-%Hope I get lucky with this!.\\~\\
-%
-%Scenario: The HEAnet 2016 website is down!\\~\\
-%
-%Can Salt save the day?
-%
-%\end{frame}
+\begin{frame}[fragile]
+\frametitle{Live Demo!}
+
+Hope I get lucky with this!.\\~\\
+
+Scenario: The HEAnet 2016 website is down!\\~\\
+
+Can Salt save the day?\\~\\
+
+Note to presenter: https://tchpc.tcd.ie/heanet2016/ is the URL. Note the https!
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Live Demo - Broken Site}
+\includegraphics[scale=0.35]{HEAnet-broken.png}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Live Demo - Fixing the site}
+\includegraphics[scale=0.50]{salt-master-starts-heanet2016-web-service.png}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{Live Demo - Site back up}
+\includegraphics[scale=0.35]{HEAnet-works.png}
+\end{frame}
 
 \begin{frame}
 \frametitle{Salt take aways}
