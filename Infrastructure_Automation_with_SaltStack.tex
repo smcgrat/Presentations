@@ -1,4 +1,3 @@
-
 \documentclass{beamer}
 \mode<presentation> {
 \usetheme{tcd}
@@ -65,35 +64,22 @@ Trinity College Dublin \\
 \item Ireland's premier High Performance Computing Centre with large scale Supercomputing and Visualisation facilities.
 \item Assisting Researchers with computationally complex problems.
 \item Previously The Trinity Centre for High Performance Computing, TCHPC
-\item Manage in the region of 500 physical and virtual linux machines
 \end{itemize}
 
 \end{frame}
 
 \begin{frame}
-\frametitle{About Configuration management}
-\begin{quote}
-Configuration management (CM) is a systems engineering process for establishing and maintaining consistency of a product's performance, functional, and physical attributes with its requirements, design, and operational information throughout its life.
-\footnote{\url{https://en.wikipedia.org/wiki/Configuration_management}} % cite the quote as a foot note on the slide
-\end{quote}
-Dangers of Configuration Management
-\begin{itemize}
-\item Can't just do something on the fly, must be centrally managed
-\item There is a risk that local changes will get over written
-\item You have to learn another tool
-\end{itemize}
-Examples:
-\begin{itemize}
-\item Salt
-\item Puppet
-\item Ansible
-\item Lots more
-\end{itemize}
+\frametitle{The need to automate}
+
+Why: Research IT has in the region of 500 linux machines, (physical and virtual).\\~\\
+How: Salt *\\~\\
+
+* previously ansible and puppet
 
 \end{frame}
 
 \begin{frame}
-\frametitle{Why use a Configuration Manager?}
+\frametitle{Why use an automation tool?}
 
 It allows you to be:
 \begin{itemize}
@@ -103,40 +89,6 @@ It allows you to be:
 \item Repeatable: \emph{it's the same salt statement that is applied each time}
 \item Efficient: \emph{once configured you don't have to intervene with specific machines}
 \end{itemize}
-\end{frame}
-
-\begin{frame}
-\frametitle{About Salt}
-Salt (also called SaltStack): https://saltstack.com/\\
-\begin{itemize}
-\item Client Server design.\\
-\item Service runs on the managed nodes (minions).\\
-\item Minions controlled by the master.\\
-\item Master can push changes or minions can pull from the master.\\
-\item Trust relationship managed via asynchronous keys\\
-\end{itemize}
-Some of what can be managed:
-\begin{itemize}
-\item package installation
-\item configuration files, sourced from master, templates, find and replace in a file...
-\item enabled and running services
-\item specific settings or facts, e.g. db password, for individual minions
-\item much more
-\end{itemize}
-\end{frame}
-
-\begin{frame}
-\frametitle{Why salt over ansible or puppet}
-Firstly, this is nothing against either of those, which we have both used. But from our experience Salt has advantages:\\
-\begin{itemize}
-\item Usable error messages - Ansible's error messages lack detail
-\item Granularity - Ansible is hard to do a single thing to 1 node with
-\item Scale - Ansible is slow in comparison to Salt
-\item YAML - Puppet requires some ruby skills I at least don't have
-\item Flexibility - Puppet always seemed very controlling and designed for tight control
-\end{itemize}
-
-Lets see some use case examples:\\
 \end{frame}
 
 \begin{frame}[fragile] % fragile needed when quoting code or using verbatim, etc
@@ -159,6 +111,7 @@ Comment\\
 \end{itemize}
 Lets look at what exactly the $installsalt$ state does.
 \end{frame}
+
 
 \begin{frame}[fragile]
 \frametitle{Use Case 1 - $installsalt$ state}
@@ -226,40 +179,8 @@ include:
 Why: your standard setup is repeatedly and automatically applied.
 \end{frame}
 
-\begin{frame}[fragile]
-\frametitle{Use Case 3 - Install a web server}
-Installation State:
-\begin{lstlisting}[basicstyle=\tiny,]
-install common packages:
-  pkg:
-    - installed
-    - pkgs:
-      - httpd
-      - php
-      - php-devel
-      - mysql
-      - php-ldap
-      - mod_ssl
-      - openssl
-      - php-mysql
-      - php-pear-MDB2-Driver-mysql
-      - mod_authz_ldap
-
-httpd service:
-  service:
-    - name: httpd
-    - running
-    - enable: True
-\end{lstlisting}
-From the salt master:
-\begin{lstlisting}[basicstyle=\tiny,]
-salt webserver.fqdn state.sls install-webserver
-\end{lstlisting}
-That is a very efficient way to get the usual web server settings applied to a host without having to reference standard install documentation.
-\end{frame}
-
 \begin{frame}
-\frametitle{Use Case 4 - software upgrade testing}
+\frametitle{Use Case 3 - software upgrade testing}
 Scenario:\\
 \begin{itemize}
 \item kernel needs to be updated.
@@ -280,7 +201,7 @@ interface to derive information about the underlying system. This is called the 
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Use Case 4 - install specific versions on specific node}
+\frametitle{Use Case 3 - install specific versions on specific node}
 
 Set the pillar to the updated versions for your test node:\\
 
@@ -313,7 +234,7 @@ This provides excellent granularity without having to provision a test environme
 \end{frame} 
 
 \begin{frame}
-\frametitle{Use Case 5 - GPU card installation}
+\frametitle{Use Case 4 - GPU card installation}
 Process:\\
 \begin{enumerate}% itemized / ordered list
 \item Remove unsupported kernel modules and reboot to load correct kernel modules.
@@ -330,7 +251,7 @@ Solution: Set a grain after each step.
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Use Case 5 - Continued}
+\frametitle{Use Case 4 - Continued}
 
 
 Ensure this state only runs on a node with the gpu installed in it:\\
@@ -360,7 +281,7 @@ always-fails gpu:
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Use Case 5 - Continued}
+\frametitle{Use Case 4 - Continued}
 
 Generate the new ramdisk from those modules\\
 
@@ -402,7 +323,7 @@ stops after ramdisk reboot:
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Use Case 5 - Continued}
+\frametitle{Use Case 4 - Continued}
 
 Install GPU drivers only if they haven't all ready been installed \\
 
@@ -438,7 +359,7 @@ stops after nvidia drivers reboot:
 \end{frame}
 
 \begin{frame}
-\frametitle{Use Case 5 - benefits}
+\frametitle{Use Case 4 - benefits}
 
 Salt provides a simple and easy way to automatically provision a complex installation.\\~\\
 
@@ -446,35 +367,6 @@ It is easily repeated if a minion has to be re-installed or new machines added.\
 
 You have a centralise documentation store of what exactly needs to be done to set your installation up.
 
-\end{frame}
-
-\begin{frame}[fragile]
-\frametitle{Live Demo!}
-
-Hope I get lucky with this!.\\~\\
-
-Scenario: The HEAnet 2016 website is down!\\~\\
-
-Can Salt save the day?\\~\\
-
-Note to presenter: https://tchpc.tcd.ie/heanet2016/ is the URL. Note the https!
-
-\end{frame}
-
-\begin{frame}[fragile]
-\frametitle{Live Demo - Broken Site}
-\includegraphics[scale=0.35]{HEAnet-broken.png}
-\end{frame}
-
-\begin{frame}[fragile]
-\frametitle{Live Demo - Fixing the site}
-\includegraphics[scale=0.50]{salt-master-starts-heanet2016-web-service.png}
-\end{frame}
-
-
-\begin{frame}[fragile]
-\frametitle{Live Demo - Site back up}
-\includegraphics[scale=0.35]{HEAnet-works.png}
 \end{frame}
 
 \begin{frame}
