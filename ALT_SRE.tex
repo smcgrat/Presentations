@@ -61,17 +61,17 @@ Typical SRE activities fall into some of the following categories
 	\end{itemize}
 \item Systems engineering
 	\begin{itemize}
-	\item E.g. Configuring production systems, modifying configurations. 
+	\item E.g. Configuring production systems.
 	\end{itemize}
 \item Toil
 	\begin{itemize}
 	\item the kind of work tied to running a production service that tends to be manual, repetitive, automatable, tactical, devoid of enduring value, and that scales linearly as a service grows.
 	\end{itemize}
 \end{itemize}
-\begin{quote}
-"Simply put, SRE is software engineering applied to operations"
-\footnote{\url{https://www.lynda.com/Software-Development-tutorials/DevOps-Foundations-Site-Reliability-Engineering/669542-2.html}}
-\end{quote}
+%\begin{quote}
+%"Simply put, SRE is software engineering applied to operations"
+%\footnote{\url{https://www.lynda.com/Software-Development-tutorials/DevOps-Foundations-Site-Reliability-Engineering/669542-2.html}}
+%\end{quote}
 \end{frame}
 
 \begin{frame}
@@ -99,15 +99,16 @@ Typical SRE activities fall into some of the following categories
 \end{frame}
 
 \begin{frame}
-\frametitle{What's a HPC Cluster?}
-Cluster's have lots of nodes that can sometimes fail for varying reasons, (often because the end user does cunning things to break them).
+\frametitle{What's a \sout{Science} HPC Cluster?}
     \begin{center}
      \includegraphics[width=0.5\textwidth]{imgs/cluster_anatomy.png}
      \end{center}
+Cluster's have lots of servers that can sometimes fail.\\~\\
+(Often because the end user does cunning things to break them).
 \end{frame}
 
 \begin{frame}
-\frametitle{Cluster's in Trinity}
+\frametitle{Cluster's in Trinity\footnote{\url{https://www.tchpc.tcd.ie/resources/clusters}}}
 \begin{center}
 	\includegraphics[width=0.75\textwidth]{imgs/tchpc_clusters.png}
 \end{center}
@@ -147,11 +148,10 @@ A lot of work that was
 	\item Tactical
 	\item Scaled linearly as a service grow
 \end{itemize}
-I.E. Toil
 \end{frame}
 
 \begin{frame}
-\frametitle{Remind you of anything}
+\frametitle{Seems like Toil}
     \begin{center}
      \includegraphics[width=0.5\textwidth]{imgs/bird.jpg}
      \end{center}
@@ -211,19 +211,19 @@ function restartnode {
 
 \begin{frame}
 \frametitle{Comments / Observations}
+At small scale anyone can SRE, (not necessarily well though).\\~\\
 Some of the poor design decisions made along the way
 \begin{itemize}
-	\item Writing it in bash!
-	\item Particularly not a 686 line bash script. That’s just silly
+	\item Writing it in bash! Particularly 686 lines of it. That’s just silly.\\~\\
 \end{itemize}
 Some of the pitfalls of having a self healing cluster
 \begin{itemize}
-	\item Sometimes you actually want your cluster to be off, so having a tool that automatically turns it back on may not be optimal!
+	\item Sometimes you actually want your cluster to be off, so having a tool that automatically turns it back on may not be optimal!\\~\\
 \end{itemize}
 Some possible future developments
 \begin{itemize}
 	\item Re-write in Python
-	\item Write as a state machine
+	\item Write as a finite state machine?
 \end{itemize}
 \end{frame}
 
